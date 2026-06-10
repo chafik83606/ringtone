@@ -41,6 +41,17 @@ class AppConfig {
     defaultValue: 'ca-app-pub-3940256099942544/4411468910',
   );
 
+  /// URL publique de la politique de confidentialité (GitHub Pages).
+  static const String privacyPolicyUrl = String.fromEnvironment(
+    'PRIVACY_POLICY_URL',
+    defaultValue: 'https://chafik83606.github.io/ringtone/privacy.html',
+  );
+
+  static const String supportEmail = String.fromEnvironment(
+    'SUPPORT_EMAIL',
+    defaultValue: 'chakif.bakri@gmail.com',
+  );
+
   static bool get isIos => Platform.isIOS;
   static bool get isAndroid => Platform.isAndroid;
 
@@ -54,4 +65,10 @@ class AppConfig {
 
   static String get interstitialAdUnitId =>
       isIos ? iosInterstitialAdUnitId : androidInterstitialAdUnitId;
+
+  static bool get hasPrivacyPolicy => privacyPolicyUrl.isNotEmpty;
+
+  static bool get usesTestAdIds =>
+      bannerAdUnitId.contains('3940256099942544') ||
+      interstitialAdUnitId.contains('3940256099942544');
 }
