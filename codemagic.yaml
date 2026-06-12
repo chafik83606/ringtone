@@ -1,0 +1,90 @@
+# Codemagic — Ringtone Maker
+# Dans Codemagic → ringtone → Settings → Environment variables,
+# créez le groupe "ringtone_secrets" avec :
+#   RC_IOS_API_KEY, ADMOB_APP_ID, ADMOB_BANNER_IOS, ADMOB_INTERSTITIAL_IOS
+# (optionnel Android : RC_ANDROID_API_KEY, ADMOB_BANNER_ANDROID, ADMOB_INTERSTITIAL_ANDROID)
+
+workflows:
+  ios-release:
+    name: iOS App Store
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ctre2.ringtonemaker
+      groups:
+        - ringtone_secrets
+      vars:
+        RC_ENTITLEMENT_ID: pro
+        RC_OFFERING_ID: default
+        RC_MONTHLY_PRODUCT_ID: ringtone_pro_monthly
+        RC_ANNUAL_PRODUCT_ID: ringtone_pro_annual
+        RC_LIFETIME_PRODUCT_ID: ringtone_pro_lifetime
+        PRIVACY_POLICY_URL: https://chafik83606.github.io/ringtone/privacy.html
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Inject AdMob App ID (iOS)
+        script: |
+          if [ -n "$ADMOB_APP_ID" ]; then
+            sed -i '' "s|^ADMOB_APP_ID=.*|ADMOB_APP_ID=$ADMOB_APP_ID|" ios/Flutter/Release.xcconfig
+          fi
+      - name: Get packages
+        script: flutter pub get
+      - name: Build IPA
+        script: |
+          flutter build ipa --release \
+            --dart-define=RC_IOS_API_KEY=$RC_IOS_API_KEY \
+            --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
+            --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
+            --dart-define=RC_MONTHLY_PRODUCT_ID=$RC_MONTHLY_PRODUCT_ID \
+            --dart-define=RC_ANNUAL_PRODUCT_ID=$RC_ANNUAL_PRODUCT_ID \
+            --dart-define=RC_LIFETIME_PRODUCT_ID=$RC_LIFETIME_PRODUCT_ID \
+            --dart-define=ADMOB_BANNER_IOS=$ADMOB_BANNER_IOS \
+            --dart-define=ADMOB_INTERSTITIAL_IOS=$ADMOB_INTERSTITIAL_IOS \
+            --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - contact@w-dynaweb.com
+        notify:
+          success: true
+          failure: true
+
+  android-release:
+    name: Android Play Store
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      groups:
+        - ringtone_secrets
+      vars:
+        RC_ENTITLEMENT_ID: pro
+        RC_OFFERING_ID: default
+        RC_MONTHLY_PRODUCT_ID: ringtone_pro_monthly
+        RC_ANNUAL_PRODUCT_ID: ringtone_pro_annual
+        RC_LIFETIME_PRODUCT_ID: ringtone_pro_lifetime
+        PRIVACY_POLICY_URL: https://chafik83606.github.io/ringtone/privacy.html
+      flutter: stable
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+      - name: Build AAB
+        script: |
+          flutter build appbundle --release \
+            --dart-define=RC_ANDROID_API_KEY=$RC_ANDROID_API_KEY \
+            --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
+            --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
+            --dart-define=RC_MONTHLY_PRODUCT_ID=$RC_MONTHLY_PRODUCT_ID \
+            --dart-define=RC_ANNUAL_PRODUCT_ID=$RC_ANNUAL_PRODUCT_ID \
+            --dart-define=RC_LIFETIME_PRODUCT_ID=$RC_LIFETIME_PRODUCT_ID \
+            --dart-define=ADMOB_BANNER_ANDROID=$ADMOB_BANNER_ANDROID \
+            --dart-define=ADMOB_INTERSTITIAL_ANDROID=$ADMOB_INTERSTITIAL_ANDROID \
+            --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
+    artifacts:
+      - build/app/outputs/bundle/release/app-release.aab
