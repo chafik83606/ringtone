@@ -9,7 +9,7 @@ workflows:
   ios-release:
     name: iOS App Store
     instance_type: mac_mini_m2
-    max_build_duration: 60
+    max_build_duration: 90
     # Clé API App Store Connect (Team settings → Integrations → Developer Portal)
     integrations:
       app_store_connect: codemagic-ios-release-v2
@@ -27,6 +27,8 @@ workflows:
         RC_ANNUAL_PRODUCT_ID: ringtone_pro_annual
         RC_LIFETIME_PRODUCT_ID: ringtone_pro_lifetime
         PRIVACY_POLICY_URL: https://chafik83606.github.io/ringtone/privacy.html
+        # App Store Connect → Sonnerie Maker Pro → Informations sur l'app
+        APP_STORE_APPLE_ID: 6779209432
       flutter: stable
       xcode: latest
     scripts:
@@ -57,6 +59,18 @@ workflows:
             --dart-define=ADMOB_BANNER_IOS=$ADMOB_BANNER_IOS \
             --dart-define=ADMOB_INTERSTITIAL_IOS=$ADMOB_INTERSTITIAL_IOS \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
+      - name: Upload to App Store Connect
+        script: |
+          IPA_PATH=$(find "$CM_BUILD_DIR/build/ios/ipa" -name "*.ipa" | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: no .ipa found in build/ios/ipa"
+            ls -la "$CM_BUILD_DIR/build/ios/ipa" || true
+            exit 1
+          fi
+          echo "Uploading $IPA_PATH (Apple ID $APP_STORE_APPLE_ID)..."
+          app-store-connect publish \
+            --path "$IPA_PATH" \
+            --apple-id "$APP_STORE_APPLE_ID"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
