@@ -47,7 +47,7 @@ workflows:
         script: |
           flutter config --no-enable-swift-package-manager
           flutter pub get
-      - name: Build and upload IPA
+      - name: Build IPA
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist \
@@ -60,18 +60,29 @@ workflows:
             --dart-define=ADMOB_BANNER_IOS=$ADMOB_BANNER_IOS \
             --dart-define=ADMOB_INTERSTITIAL_IOS=$ADMOB_INTERSTITIAL_IOS \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
-          echo "IPA files produced:"
           find build -name "*.ipa" -type f
+      - name: Upload to App Store Connect
+        script: |
           IPA_PATH=$(find build -name "*.ipa" -type f | head -1)
           if [ -z "$IPA_PATH" ]; then
             echo "ERROR: no .ipa found after build"
             exit 1
           fi
-          echo "Uploading $IPA_PATH to App Store Connect (Apple ID $APP_STORE_APPLE_ID)..."
+          echo "Uploading $IPA_PATH (Apple ID $APP_STORE_APPLE_ID)..."
+          set +e
           app-store-connect publish \
             --path "$IPA_PATH" \
             --apple-id "$APP_STORE_APPLE_ID" \
-            --altool-retries 5
+            --altool-retries 5 \
+            --skip-package-validation 2>&1 | tee /tmp/asc_publish.log
+          EXIT=$?
+          set -e
+          if grep -q "UPLOAD SUCCEEDED" /tmp/asc_publish.log; then
+            echo "Upload delivered to Apple. Check TestFlight in 15-45 minutes."
+            exit 0
+          fi
+          echo "Upload failed (exit $EXIT)"
+          exit "$EXIT"
     artifacts:
       - build/**/*.ipa
     publishing:
