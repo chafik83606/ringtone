@@ -78,7 +78,9 @@ workflows:
           EXIT=$?
           set -e
           if grep -q "UPLOAD SUCCEEDED" /tmp/asc_publish.log; then
-            echo "Upload delivered to Apple. Check TestFlight in 15-45 minutes."
+            echo "Upload delivered to Apple (build must be new — currently from pubspec.yaml)."
+            echo "Check App Store Connect → Distribution → Activité in 15-45 minutes."
+            app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || true
             exit 0
           fi
           echo "Upload failed (exit $EXIT)"
