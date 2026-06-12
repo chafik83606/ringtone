@@ -47,9 +47,10 @@ workflows:
         script: |
           flutter config --no-enable-swift-package-manager
           flutter pub get
-      - name: Build IPA
+      - name: Build and upload IPA
         script: |
           flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist \
             --dart-define=RC_IOS_API_KEY=$RC_IOS_API_KEY \
             --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
             --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
@@ -59,20 +60,19 @@ workflows:
             --dart-define=ADMOB_BANNER_IOS=$ADMOB_BANNER_IOS \
             --dart-define=ADMOB_INTERSTITIAL_IOS=$ADMOB_INTERSTITIAL_IOS \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
-      - name: Upload to App Store Connect
-        script: |
-          IPA_PATH=$(find "$CM_BUILD_DIR/build/ios/ipa" -name "*.ipa" | head -1)
+          echo "IPA files produced:"
+          find build -name "*.ipa" -type f
+          IPA_PATH=$(find build -name "*.ipa" -type f | head -1)
           if [ -z "$IPA_PATH" ]; then
-            echo "ERROR: no .ipa found in build/ios/ipa"
-            ls -la "$CM_BUILD_DIR/build/ios/ipa" || true
+            echo "ERROR: no .ipa found after build"
             exit 1
           fi
-          echo "Uploading $IPA_PATH (Apple ID $APP_STORE_APPLE_ID)..."
+          echo "Uploading $IPA_PATH to App Store Connect (Apple ID $APP_STORE_APPLE_ID)..."
           app-store-connect publish \
             --path "$IPA_PATH" \
             --apple-id "$APP_STORE_APPLE_ID"
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/**/*.ipa
     publishing:
       email:
         recipients:
