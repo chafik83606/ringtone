@@ -41,10 +41,12 @@ workflows:
             sed -i '' "s|^ADMOB_APP_ID=.*|ADMOB_APP_ID=$ADMOB_APP_ID|" ios/Flutter/Release.xcconfig
           fi
       - name: Get packages
-        script: flutter pub get
+        script: |
+          flutter config --no-enable-swift-package-manager
+          flutter pub get
       - name: Build IPA
         script: |
-          flutter build ipa --release --no-enable-swift-package-manager \
+          flutter build ipa --release \
             --dart-define=RC_IOS_API_KEY=$RC_IOS_API_KEY \
             --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
             --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
