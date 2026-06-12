@@ -1,4 +1,6 @@
 #include "Generated.xcconfig"
+// google_mobile_ads uses CocoaPods; disable SPM to avoid pod install conflicts.
+SWIFT_PACKAGE_MANAGER=disable
 // Remplacez par votre ID AdMob iOS avant publication :
 // ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY
 ADMOB_APP_ID=ca-app-pub-3940256099942544~1458002511

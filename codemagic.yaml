@@ -44,7 +44,7 @@ workflows:
         script: flutter pub get
       - name: Build IPA
         script: |
-          flutter build ipa --release \
+          flutter build ipa --release --no-enable-swift-package-manager \
             --dart-define=RC_IOS_API_KEY=$RC_IOS_API_KEY \
             --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
             --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
