@@ -70,7 +70,8 @@ workflows:
           echo "Uploading $IPA_PATH to App Store Connect (Apple ID $APP_STORE_APPLE_ID)..."
           app-store-connect publish \
             --path "$IPA_PATH" \
-            --apple-id "$APP_STORE_APPLE_ID"
+            --apple-id "$APP_STORE_APPLE_ID" \
+            --altool-retries 5
     artifacts:
       - build/**/*.ipa
     publishing:
@@ -80,10 +81,7 @@ workflows:
         notify:
           success: true
           failure: true
-      app_store_connect:
-        auth: integration
-        # Envoie le .ipa vers App Store Connect (TestFlight) après le build
-        submit_to_testflight: false
+      # Upload déjà fait dans "Build and upload IPA" — ne pas republier ici
 
   android-release:
     name: Android Play Store
