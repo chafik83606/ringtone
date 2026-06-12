@@ -3,6 +3,7 @@
 # créez le groupe "ringtone_secrets" avec :
 #   RC_IOS_API_KEY, ADMOB_APP_ID, ADMOB_BANNER_IOS, ADMOB_INTERSTITIAL_IOS
 # (optionnel Android : RC_ANDROID_API_KEY, ADMOB_BANNER_ANDROID, ADMOB_INTERSTITIAL_ANDROID)
+# Upload TestFlight : clé API déjà dans Team settings → Integrations (codemagic-ios-release-v2)
 
 workflows:
   ios-release:
@@ -65,6 +66,10 @@ workflows:
         notify:
           success: true
           failure: true
+      app_store_connect:
+        auth: integration
+        # Envoie le .ipa vers App Store Connect (TestFlight) après le build
+        submit_to_testflight: false
 
   android-release:
     name: Android Play Store
