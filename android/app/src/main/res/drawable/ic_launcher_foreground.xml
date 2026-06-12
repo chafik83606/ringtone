@@ -4,16 +4,21 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Barres waveform (création sonnerie) -->
+    <path
+        android:fillColor="#D1C4E9"
+        android:pathData="M30,78 L30,56 L36,56 L36,78 Z" />
+    <path
+        android:fillColor="#D1C4E9"
+        android:pathData="M40,78 L40,46 L46,46 L46,78 Z" />
+    <path
+        android:fillColor="#D1C4E9"
+        android:pathData="M50,78 L50,60 L56,60 L56,78 Z" />
+    <!-- Note de musique -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M63,18h10v42h-10z" />
+        android:pathData="M64,72 m-12,0 a12,12 0 1,1 24,0 a12,12 0 1,1 -24,0" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M38,58a14,14 0 1,0 0,28a14,14 0 1,0 0,-28z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M63,58a14,14 0 1,0 0,28a14,14 0 1,0 0,-28z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M71,23c10,2 16,9 16,16c0,8 -6,14 -14,15v-8c4,-1 6,-4 6,-8c0,-4 -3,-8 -8,-10z" />
+        android:pathData="M74,34 h8 v46 h-8 z" />
 </vector>

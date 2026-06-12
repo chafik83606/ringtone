@@ -98,6 +98,9 @@ class _AboutScreenState extends State<AboutScreen> {
           const _Bullet('Extrait jusqu\'à 10 minutes, 320 kbps.'),
           const _Bullet('Fondu entrée/sortie, instruments Cloche et Sinus.'),
           const _Bullet('Sans publicités.'),
+          const _Bullet(
+            'Offres : 1,99 €/mois, 9,99 €/an ou 39,90 € à vie (achats in-app).',
+          ),
           const SizedBox(height: 16),
           const _SectionTitle('Droits d\'auteur'),
           const _Bullet(

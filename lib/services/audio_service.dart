@@ -122,6 +122,30 @@ class AudioService {
     );
   }
 
+  /// Convertit [inputPath] en sonnerie iOS (.m4r, AAC, max [maxSeconds]s).
+  Future<String?> convertToIosRingtone({
+    required String inputPath,
+    int maxSeconds = 30,
+  }) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final outPath = p.join(
+      dir.path,
+      'ringtone_${DateTime.now().millisecondsSinceEpoch}.m4r',
+    );
+
+    final cmd =
+        '-y -i "$inputPath" -t $maxSeconds -c:a aac -b:a 128k -f ipod "$outPath"';
+
+    final session = await FFmpegKit.execute(cmd);
+    final rc = await session.getReturnCode();
+    if (ReturnCode.isSuccess(rc)) {
+      return outPath;
+    }
+    final logs = await session.getAllLogsAsString();
+    debugPrint('FFmpeg m4r error: $logs');
+    return null;
+  }
+
   /// Supprime un fichier temporaire.
   Future<void> deleteFile(String path) async {
     final f = File(path);

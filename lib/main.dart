@@ -1,7 +1,7 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'config/app_config.dart';
 import 'services/pro_service.dart';
 import 'services/ad_service.dart';
@@ -10,19 +10,19 @@ import 'screens/pro_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
+
+  final proService = ProService();
+  final adService = AdService();
+  await adService.initialize();
 
   if (AppConfig.purchasesConfigured) {
-    await Purchases.setLogLevel(LogLevel.debug);
+    await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.warn);
     await Purchases.configure(
       PurchasesConfiguration(AppConfig.revenueCatApiKey),
     );
   }
 
-  final proService = ProService();
   await proService.init();
-  final adService = AdService();
-  await adService.initialize();
   runApp(
     MultiProvider(
       providers: [

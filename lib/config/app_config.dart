@@ -19,9 +19,15 @@ class AppConfig {
   );
   static const String monthlyProductId = String.fromEnvironment(
     'RC_MONTHLY_PRODUCT_ID',
+    defaultValue: 'ringtone_pro_monthly',
+  );
+  static const String annualProductId = String.fromEnvironment(
+    'RC_ANNUAL_PRODUCT_ID',
+    defaultValue: 'ringtone_pro_annual',
   );
   static const String lifetimeProductId = String.fromEnvironment(
     'RC_LIFETIME_PRODUCT_ID',
+    defaultValue: 'ringtone_pro_lifetime',
   );
 
   static const String androidBannerAdUnitId = String.fromEnvironment(

@@ -4,17 +4,24 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../config/app_config.dart';
 
 const String _kProKey = 'is_pro';
-const String kEntitlementId = 'pro'; // à créer dans RevenueCat
+
+enum ProPlan { monthly, annual, lifetime }
 
 class ProService extends ChangeNotifier {
   bool _isPro = false;
   bool _isLoading = false;
   String? _lastError;
+  String _monthlyPriceLabel = '1,99 €/mois';
+  String _annualPriceLabel = '9,99 €/an';
+  String _lifetimePriceLabel = '39,90 €';
 
   bool get isPro => _isPro;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
   bool get purchasesConfigured => AppConfig.purchasesConfigured;
+  String get monthlyPriceLabel => _monthlyPriceLabel;
+  String get annualPriceLabel => _annualPriceLabel;
+  String get lifetimePriceLabel => _lifetimePriceLabel;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,6 +30,33 @@ class ProService extends ChangeNotifier {
 
     if (AppConfig.purchasesConfigured) {
       await _checkEntitlement();
+      await _loadStorePrices();
+    }
+  }
+
+  Future<void> _loadStorePrices() async {
+    try {
+      final offerings = await Purchases.getOfferings();
+      final offering =
+          offerings.all[AppConfig.revenueCatOfferingId] ?? offerings.current;
+      if (offering == null) return;
+
+      final monthly = _selectPackageFromOffering(offering, ProPlan.monthly);
+      final annual = _selectPackageFromOffering(offering, ProPlan.annual);
+      final lifetime = _selectPackageFromOffering(offering, ProPlan.lifetime);
+
+      if (monthly != null) {
+        _monthlyPriceLabel = '${monthly.storeProduct.priceString}/mois';
+      }
+      if (annual != null) {
+        _annualPriceLabel = '${annual.storeProduct.priceString}/an';
+      }
+      if (lifetime != null) {
+        _lifetimePriceLabel = lifetime.storeProduct.priceString;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Chargement des prix store indisponible: $e');
     }
   }
 
@@ -38,11 +72,10 @@ class ProService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _lastError = 'Verification RevenueCat indisponible: $e';
-      // pas de connexion → on garde la valeur locale
     }
   }
 
-  Future<bool> purchasePro({bool subscription = false}) async {
+  Future<bool> purchasePro(ProPlan plan) async {
     if (!AppConfig.purchasesConfigured) {
       _lastError =
           'Configurez RC_ANDROID_API_KEY / RC_IOS_API_KEY avant l\'achat.';
@@ -57,7 +90,7 @@ class ProService extends ChangeNotifier {
       final offerings = await Purchases.getOfferings();
       final offering =
           offerings.all[AppConfig.revenueCatOfferingId] ?? offerings.current;
-      final pkg = _selectPackage(offering, subscription);
+      final pkg = _selectPackage(offering, plan);
       if (pkg == null) return false;
 
       final customerInfo = await Purchases.purchasePackage(pkg);
@@ -113,12 +146,10 @@ class ProService extends ChangeNotifier {
     }
   }
 
-  // Limites gratuit
   static const int freeMaxSeconds = 20;
   static const int freePianoRows = 4;
   static const int freePianoCols = 4;
 
-  // Limites pro
   static const int proMaxSeconds = 600;
   static const int proPianoRows = 8;
   static const int proPianoCols = 16;
@@ -127,15 +158,26 @@ class ProService extends ChangeNotifier {
   int get pianoRows => _isPro ? proPianoRows : freePianoRows;
   int get pianoCols => _isPro ? proPianoCols : freePianoCols;
 
-  Package? _selectPackage(Offering? offering, bool subscription) {
-    if (offering == null) {
-      _lastError = 'Aucune offering RevenueCat disponible.';
-      return null;
-    }
+  Package? _selectPackage(Offering? offering, ProPlan plan) {
+    final pkg = _selectPackageFromOffering(offering, plan);
+    if (pkg != null) return pkg;
 
-    final preferredProductId = subscription
-        ? AppConfig.monthlyProductId
-        : AppConfig.lifetimeProductId;
+    _lastError = switch (plan) {
+      ProPlan.monthly => 'Aucun abonnement mensuel trouve dans RevenueCat.',
+      ProPlan.annual => 'Aucun abonnement annuel trouve dans RevenueCat.',
+      ProPlan.lifetime => 'Aucun achat a vie trouve dans RevenueCat.',
+    };
+    return null;
+  }
+
+  Package? _selectPackageFromOffering(Offering? offering, ProPlan plan) {
+    if (offering == null) return null;
+
+    final preferredProductId = switch (plan) {
+      ProPlan.monthly => AppConfig.monthlyProductId,
+      ProPlan.annual => AppConfig.annualProductId,
+      ProPlan.lifetime => AppConfig.lifetimeProductId,
+    };
 
     if (preferredProductId.isNotEmpty) {
       for (final package in offering.availablePackages) {
@@ -145,14 +187,10 @@ class ProService extends ChangeNotifier {
       }
     }
 
-    final fallback = subscription ? offering.monthly : offering.lifetime;
-    if (fallback != null) {
-      return fallback;
-    }
-
-    _lastError = subscription
-        ? 'Aucun package mensuel trouve dans l\'offering RevenueCat.'
-        : 'Aucun package lifetime trouve dans l\'offering RevenueCat.';
-    return null;
+    return switch (plan) {
+      ProPlan.monthly => offering.monthly,
+      ProPlan.annual => offering.annual,
+      ProPlan.lifetime => offering.lifetime,
+    };
   }
 }

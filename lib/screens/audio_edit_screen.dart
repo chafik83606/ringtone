@@ -53,15 +53,41 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
   }
 
   Future<void> _pickFile() async {
-    // Permission lecture audio
-    final status = await Permission.audio.request();
-    if (!status.isGranted) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Permission audio refusée')));
-      return;
+    if (Platform.isAndroid) {
+      final status = await Permission.audio.request();
+      if (!status.isGranted) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permission audio refusée')),
+        );
+        return;
+      }
     }
+
+    if (!mounted) return;
+
+    final rightsConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Droits sur le fichier audio'),
+        content: const Text(
+          'Vous devez posséder les droits d\'utilisation de ce fichier, '
+          'ou disposer d\'une autorisation du titulaire.\n\n'
+          'N\'importez pas de musique protégée sans autorisation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('J\'ai les droits'),
+          ),
+        ],
+      ),
+    );
+    if (rightsConfirmed != true || !mounted) return;
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.audio,

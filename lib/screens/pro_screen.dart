@@ -65,7 +65,7 @@ class ProScreen extends StatelessWidget {
               ('Export haute qualité (320 kbps)', Icons.high_quality),
               ('Fondu entrée / sortie', Icons.graphic_eq),
               ('Sans publicités', Icons.block),
-              ('Plusieurs instruments (bientôt)', Icons.library_music),
+              ('Instruments Piano, Cloche et Sinus', Icons.library_music),
             ].map(
               (item) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -102,40 +102,58 @@ class ProScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       AppConfig.isAndroid
-                          ? 'Lancez l\'app avec RC_ANDROID_API_KEY, RC_ENTITLEMENT_ID et vos IDs produits Google Play.'
-                          : 'Quand iOS sera ajoute, lancez l\'app avec RC_IOS_API_KEY pour activer RevenueCat.',
+                          ? 'Lancez l\'app avec RC_ANDROID_API_KEY et les IDs produits '
+                                '(mensuel, annuel, à vie) Google Play.'
+                          : 'Lancez l\'app avec RC_IOS_API_KEY et les IDs produits '
+                                '(mensuel, annuel, à vie) App Store.',
                       style: TextStyle(color: Colors.grey.shade800),
                     ),
                   ],
                 ),
               ),
 
-            // Achat unique
+            // Abonnement mensuel
             _PriceCard(
-              title: 'Achat unique',
-              price: '4,99 €',
-              subtitle: 'Accès à vie',
-              icon: Icons.all_inclusive,
-              color: Colors.deepPurple,
+              title: 'Abonnement mensuel',
+              price: proService.monthlyPriceLabel,
+              subtitle: '1,99 €/mois — annulable à tout moment',
+              icon: Icons.calendar_view_month,
+              color: Colors.indigo,
               isLoading: proService.isLoading,
               onTap: () async {
-                final ok = await proService.purchasePro(subscription: false);
+                final ok = await proService.purchasePro(ProPlan.monthly);
                 if (!context.mounted) return;
                 _showResult(context, ok);
               },
             ),
             const SizedBox(height: 12),
 
-            // Abonnement mensuel
+            // Abonnement annuel
             _PriceCard(
-              title: 'Abonnement mensuel',
-              price: '1,99 €/mois',
-              subtitle: 'Annulable à tout moment',
-              icon: Icons.autorenew,
-              color: Colors.indigo,
+              title: 'Abonnement annuel',
+              price: proService.annualPriceLabel,
+              subtitle: '9,99 €/an — meilleur rapport qualité-prix',
+              icon: Icons.event,
+              color: Colors.teal,
               isLoading: proService.isLoading,
               onTap: () async {
-                final ok = await proService.purchasePro(subscription: true);
+                final ok = await proService.purchasePro(ProPlan.annual);
+                if (!context.mounted) return;
+                _showResult(context, ok);
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Achat à vie
+            _PriceCard(
+              title: 'Accès à vie',
+              price: proService.lifetimePriceLabel,
+              subtitle: '39,90 € — paiement unique',
+              icon: Icons.all_inclusive,
+              color: Colors.deepPurple,
+              isLoading: proService.isLoading,
+              onTap: () async {
+                final ok = await proService.purchasePro(ProPlan.lifetime);
                 if (!context.mounted) return;
                 _showResult(context, ok);
               },
@@ -160,10 +178,13 @@ class ProScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 8),
-            const Text(
-              'Les prix sont indicatifs. Le paiement est débité via Google Play.\n'
-              'Pour les abonnements : renouvellement automatique sauf annulation 24h avant la fin de la période.',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+            Text(
+              AppConfig.isAndroid
+                  ? 'Les prix affichés viennent de Google Play (via RevenueCat).\n'
+                        'Pour les abonnements : renouvellement automatique sauf annulation 24 h avant la fin de la période.'
+                  : 'Les prix affichés viennent de l\'App Store (via RevenueCat).\n'
+                        'Pour les abonnements : renouvellement automatique sauf annulation 24 h avant la fin de la période.',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],

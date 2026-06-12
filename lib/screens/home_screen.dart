@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/pro_service.dart';
 import 'audio_edit_screen.dart';
 import 'piano_screen.dart';
 import 'pro_screen.dart';
+import 'about_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,6 +18,14 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Ringtone Maker'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'À propos',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
+          ),
           if (!isPro)
             TextButton.icon(
               onPressed: () => Navigator.push(
@@ -49,6 +59,22 @@ class HomeScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
+            if (Platform.isIOS) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Sur iPhone : export .m4r puis installation via Réglages → Sons',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+            if (!isPro) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Version gratuite : extrait 20 s, 16 notes piano, publicités',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
             const SizedBox(height: 48),
             _HomeCard(
               icon: Icons.music_note,
