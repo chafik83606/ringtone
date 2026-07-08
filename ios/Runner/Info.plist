@@ -28,6 +28,10 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ringtone Maker accède à votre bibliothèque pour importer des fichiers audio et créer vos sonneries.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ringtone Maker peut utiliser le microphone pour enregistrer ou traiter de l'audio lors de la création de sonneries.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
