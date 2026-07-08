@@ -70,7 +70,7 @@ class HomeScreen extends StatelessWidget {
             if (!isPro) ...[
               const SizedBox(height: 8),
               Text(
-                'Version gratuite : extrait 20 s, 16 notes piano, publicités',
+                'Version gratuite : extrait 20 s, 16 notes piano',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),

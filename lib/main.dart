@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'config/app_config.dart';
 import 'services/pro_service.dart';
-import 'services/ad_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/pro_screen.dart';
 
@@ -12,8 +11,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final proService = ProService();
-  final adService = AdService();
-  await adService.initialize();
 
   if (AppConfig.purchasesConfigured) {
     await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.warn);
@@ -24,11 +21,8 @@ void main() async {
 
   await proService.init();
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: proService),
-        Provider.value(value: adService),
-      ],
+    ChangeNotifierProvider.value(
+      value: proService,
       child: const RingtoneMakerApp(),
     ),
   );

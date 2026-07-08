@@ -64,7 +64,6 @@ class ProScreen extends StatelessWidget {
               ('Composition complète : 8×16 notes', Icons.piano),
               ('Export haute qualité (320 kbps)', Icons.high_quality),
               ('Fondu entrée / sortie', Icons.graphic_eq),
-              ('Sans publicités', Icons.block),
               ('Instruments Piano, Cloche et Sinus', Icons.library_music),
             ].map(
               (item) => Padding(

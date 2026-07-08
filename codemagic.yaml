@@ -1,8 +1,7 @@
 # Codemagic — Ringtone Maker
 # Dans Codemagic → ringtone → Settings → Environment variables,
 # créez le groupe "ringtone_secrets" avec :
-#   RC_IOS_API_KEY, ADMOB_APP_ID, ADMOB_BANNER_IOS, ADMOB_INTERSTITIAL_IOS
-# (optionnel Android : RC_ANDROID_API_KEY, ADMOB_BANNER_ANDROID, ADMOB_INTERSTITIAL_ANDROID)
+#   RC_IOS_API_KEY (iOS), RC_ANDROID_API_KEY (Android)
 # Upload TestFlight : clé API déjà dans Team settings → Integrations (codemagic-ios-release-v2)
 
 workflows:
@@ -38,11 +37,6 @@ workflows:
         script: keychain add-certificates
       - name: Apply profiles to Xcode project
         script: xcode-project use-profiles
-      - name: Inject AdMob App ID (iOS)
-        script: |
-          if [ -n "$ADMOB_APP_ID" ]; then
-            sed -i '' "s|^ADMOB_APP_ID=.*|ADMOB_APP_ID=$ADMOB_APP_ID|" ios/Flutter/Release.xcconfig
-          fi
       - name: Get packages
         script: |
           flutter config --no-enable-swift-package-manager
@@ -57,8 +51,6 @@ workflows:
             --dart-define=RC_MONTHLY_PRODUCT_ID=$RC_MONTHLY_PRODUCT_ID \
             --dart-define=RC_ANNUAL_PRODUCT_ID=$RC_ANNUAL_PRODUCT_ID \
             --dart-define=RC_LIFETIME_PRODUCT_ID=$RC_LIFETIME_PRODUCT_ID \
-            --dart-define=ADMOB_BANNER_IOS=$ADMOB_BANNER_IOS \
-            --dart-define=ADMOB_INTERSTITIAL_IOS=$ADMOB_INTERSTITIAL_IOS \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
           find build -name "*.ipa" -type f
       - name: Upload to App Store Connect
@@ -123,8 +115,6 @@ workflows:
             --dart-define=RC_MONTHLY_PRODUCT_ID=$RC_MONTHLY_PRODUCT_ID \
             --dart-define=RC_ANNUAL_PRODUCT_ID=$RC_ANNUAL_PRODUCT_ID \
             --dart-define=RC_LIFETIME_PRODUCT_ID=$RC_LIFETIME_PRODUCT_ID \
-            --dart-define=ADMOB_BANNER_ANDROID=$ADMOB_BANNER_ANDROID \
-            --dart-define=ADMOB_INTERSTITIAL_ANDROID=$ADMOB_INTERSTITIAL_ANDROID \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
     artifacts:
       - build/app/outputs/bundle/release/app-release.aab

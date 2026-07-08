@@ -5,10 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/pro_service.dart';
 import '../services/audio_service.dart';
-import '../services/ad_service.dart';
 import 'preview_screen.dart';
 
 class AudioEditScreen extends StatefulWidget {
@@ -29,20 +27,11 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
 
   final AudioPlayer _player = AudioPlayer();
   late PlayerController _waveController;
-  BannerAd? _bannerAd;
 
   @override
   void initState() {
     super.initState();
     _waveController = PlayerController();
-    _loadBanner();
-  }
-
-  Future<void> _loadBanner() async {
-    final isPro = context.read<ProService>().isPro;
-    if (isPro) return;
-    final ad = await context.read<AdService>().loadBanner();
-    if (mounted) setState(() => _bannerAd = ad);
   }
 
   @override
@@ -131,7 +120,6 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
   Future<void> _processTrim() async {
     if (_importedPath == null) return;
     final proService = context.read<ProService>();
-    final adService = context.read<AdService>();
     final navigator = Navigator.of(context);
 
     // Vérification limite gratuit
@@ -154,10 +142,6 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
         bitrate: proService.isPro ? 320 : 96,
       );
       if (outPath == null) throw Exception('Découpage échoué');
-
-      if (!proService.isPro) {
-        adService.showInterstitial();
-      }
 
       if (mounted) {
         navigator.push(
@@ -205,9 +189,6 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Édition audio')),
-      bottomNavigationBar: _bannerAd != null && !isPro
-          ? SizedBox(height: 50, child: AdWidget(ad: _bannerAd!))
-          : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

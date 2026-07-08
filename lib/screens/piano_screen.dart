@@ -4,7 +4,6 @@ import 'package:audioplayers/audioplayers.dart';
 import '../models/piano_note.dart';
 import '../services/pro_service.dart';
 import '../services/audio_service.dart';
-import '../services/ad_service.dart';
 import 'preview_screen.dart';
 
 // Fréquences des notes (Do3 → Si4)
@@ -176,7 +175,6 @@ class _PianoScreenState extends State<PianoScreen> {
     setState(() => _isProcessing = true);
     try {
       final isPro = context.read<ProService>().isPro;
-      final adService = context.read<AdService>();
       final navigator = Navigator.of(context);
       final notes = _sequence
           .map((n) => (freq: n.frequency, durationMs: n.durationMs))
@@ -187,10 +185,6 @@ class _PianoScreenState extends State<PianoScreen> {
         bitrate: isPro ? 320 : 96,
       );
       if (outPath == null) throw Exception('Export échoué');
-
-      if (!isPro) {
-        adService.showInterstitial();
-      }
 
       if (mounted) {
         navigator.push(

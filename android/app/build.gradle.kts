@@ -8,18 +8,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val localProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.reader(Charsets.UTF_8).use { load(it) }
-    }
-}
-
-val admobAppId =
-    (project.findProperty("ADMOB_APP_ID_ANDROID") as String?)
-        ?: localProperties.getProperty("admob.app.id.android")
-        ?: "ca-app-pub-3940256099942544~3347511713"
-
 val keystoreProperties = Properties().apply {
     val keystorePropertiesFile = rootProject.file("key.properties")
     if (keystorePropertiesFile.exists()) {
@@ -50,7 +38,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["admobApplicationId"] = admobAppId
     }
 
     signingConfigs {

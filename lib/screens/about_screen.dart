@@ -92,12 +92,11 @@ class _AboutScreenState extends State<AboutScreen> {
           const _SectionTitle('Version gratuite'),
           const _Bullet('Extrait jusqu\'à 20 secondes.'),
           const _Bullet('16 notes maximum au piano.'),
-          const _Bullet('Qualité 96 kbps, publicités affichées.'),
+          const _Bullet('Qualité 96 kbps.'),
           const SizedBox(height: 16),
           const _SectionTitle('Version Pro'),
           const _Bullet('Extrait jusqu\'à 10 minutes, 320 kbps.'),
           const _Bullet('Fondu entrée/sortie, instruments Cloche et Sinus.'),
-          const _Bullet('Sans publicités.'),
           const _Bullet(
             'Offres : 1,99 €/mois, 9,99 €/an ou 39,90 € à vie (achats in-app).',
           ),
