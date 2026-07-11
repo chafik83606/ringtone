@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -263,25 +264,29 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
               const SizedBox(height: 24),
 
               // Slider début
-              _SliderRow(
+              _TrimSliderRow(
                 label: 'Début',
                 value: _startSec,
                 min: 0,
                 max: _totalDuration,
                 onChanged: (v) => setState(() {
                   _startSec = v;
-                  if (_startSec >= _endSec) _endSec = _startSec + 1;
+                  if (_startSec >= _endSec - 0.25) {
+                    _endSec = (_startSec + 0.25).clamp(0, _totalDuration);
+                  }
                 }),
               ),
               // Slider fin
-              _SliderRow(
+              _TrimSliderRow(
                 label: 'Fin',
                 value: _endSec,
                 min: 0,
                 max: _totalDuration,
                 onChanged: (v) => setState(() {
                   _endSec = v;
-                  if (_endSec <= _startSec) _startSec = _endSec - 1;
+                  if (_endSec <= _startSec + 0.25) {
+                    _startSec = (_endSec - 0.25).clamp(0, _totalDuration);
+                  }
                 }),
               ),
 
@@ -386,6 +391,111 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TrimSliderRow extends StatelessWidget {
+  static const _stepSec = 0.25;
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  const _TrimSliderRow({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  void _nudge(double delta) {
+    onChanged((value + delta).clamp(min, max));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 96,
+            child: Text(
+              '$label : ${value.toStringAsFixed(2)}s',
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          _NudgeButton(
+            icon: Icons.remove,
+            onStep: () => _nudge(-_stepSec),
+          ),
+          Expanded(
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              onChanged: onChanged,
+            ),
+          ),
+          _NudgeButton(
+            icon: Icons.add,
+            onStep: () => _nudge(_stepSec),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NudgeButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onStep;
+
+  const _NudgeButton({required this.icon, required this.onStep});
+
+  @override
+  State<_NudgeButton> createState() => _NudgeButtonState();
+}
+
+class _NudgeButtonState extends State<_NudgeButton> {
+  Timer? _repeatTimer;
+
+  @override
+  void dispose() {
+    _repeatTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startRepeat() {
+    widget.onStep();
+    _repeatTimer?.cancel();
+    _repeatTimer = Timer.periodic(
+      const Duration(milliseconds: 80),
+      (_) => widget.onStep(),
+    );
+  }
+
+  void _stopRepeat() {
+    _repeatTimer?.cancel();
+    _repeatTimer = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onStep,
+      onLongPressStart: (_) => _startRepeat(),
+      onLongPressEnd: (_) => _stopRepeat(),
+      onLongPressCancel: _stopRepeat,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(widget.icon, size: 20, color: Colors.deepPurple),
       ),
     );
   }

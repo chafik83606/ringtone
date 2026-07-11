@@ -1,7 +1,7 @@
 name: ringtone_maker
 description: "Ringtone Maker – créez vos sonneries personnalisées"
 publish_to: 'none'
-version: 1.0.5+22
+version: 1.0.5+23
 
 environment:
   sdk: ^3.11.3
@@ -26,7 +26,7 @@ dependencies:
   audio_waveforms: ^1.3.0
 
   # Découpage / export audio (FFmpeg)
-  ffmpeg_kit_flutter_minimal: ^6.0.8
+  ffmpeg_kit_flutter_new_min: ^3.3.2
 
   # Synthèse piano (tons purs)
   just_audio: ^0.9.42

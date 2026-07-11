@@ -3,8 +3,8 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:ffmpeg_kit_flutter_minimal/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_minimal/return_code.dart';
+import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
@@ -46,14 +46,19 @@ class AudioService {
         '$audioFilter '
         '-b:a ${bitrate}k "$outPath"';
 
-    final session = await FFmpegKit.execute(cmd);
-    final rc = await session.getReturnCode();
-    if (ReturnCode.isSuccess(rc)) {
-      return outPath;
+    try {
+      final session = await FFmpegKit.execute(cmd);
+      final rc = await session.getReturnCode();
+      if (ReturnCode.isSuccess(rc)) {
+        return outPath;
+      }
+      final logs = await session.getAllLogsAsString();
+      debugPrint('FFmpeg error: $logs');
+      return null;
+    } on MissingPluginException catch (e) {
+      debugPrint('FFmpeg plugin unavailable: $e');
+      return null;
     }
-    final logs = await session.getAllLogsAsString();
-    debugPrint('FFmpeg error: $logs');
-    return null;
   }
 
   /// Génère un fichier WAV à partir d'une séquence de fréquences (piano virtuel).
@@ -136,14 +141,19 @@ class AudioService {
     final cmd =
         '-y -i "$inputPath" -t $maxSeconds -c:a aac -b:a 128k -f ipod "$outPath"';
 
-    final session = await FFmpegKit.execute(cmd);
-    final rc = await session.getReturnCode();
-    if (ReturnCode.isSuccess(rc)) {
-      return outPath;
+    try {
+      final session = await FFmpegKit.execute(cmd);
+      final rc = await session.getReturnCode();
+      if (ReturnCode.isSuccess(rc)) {
+        return outPath;
+      }
+      final logs = await session.getAllLogsAsString();
+      debugPrint('FFmpeg m4r error: $logs');
+      return null;
+    } on MissingPluginException catch (e) {
+      debugPrint('FFmpeg plugin unavailable for m4r: $e');
+      return null;
     }
-    final logs = await session.getAllLogsAsString();
-    debugPrint('FFmpeg m4r error: $logs');
-    return null;
   }
 
   /// Supprime un fichier temporaire.
