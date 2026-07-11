@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../services/pro_service.dart';
 import '../services/audio_service.dart';
 import 'preview_screen.dart';
@@ -78,27 +80,63 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
     );
     if (rightsConfirmed != true || !mounted) return;
 
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.audio,
-      allowMultiple: false,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final path = result.files.single.path;
-    if (path == null) return;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg', 'mpeg', 'mp4'],
+        allowMultiple: false,
+        withData: Platform.isIOS,
+      );
+      if (result == null || result.files.isEmpty) return;
 
-    await _waveController.preparePlayer(
-      path: path,
-      shouldExtractWaveform: true,
-      noOfSamples: 150,
-    );
+      final path = await _resolvePickedFilePath(result.files.single);
+      if (path == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossible de lire le fichier sélectionné.'),
+          ),
+        );
+        return;
+      }
 
-    final dur = _waveController.maxDuration / 1000.0;
-    setState(() {
-      _importedPath = path;
-      _totalDuration = dur;
-      _startSec = 0;
-      _endSec = dur;
-    });
+      await _waveController.preparePlayer(
+        path: path,
+        shouldExtractWaveform: true,
+        noOfSamples: 150,
+      );
+
+      final dur = _waveController.maxDuration / 1000.0;
+      if (!mounted) return;
+      setState(() {
+        _importedPath = path;
+        _totalDuration = dur;
+        _startSec = 0;
+        _endSec = dur;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur à l\'import : $e')),
+      );
+    }
+  }
+
+  /// Sur iOS, [PlatformFile.path] est souvent null — copie vers un fichier temporaire.
+  Future<String?> _resolvePickedFilePath(PlatformFile file) async {
+    if (file.path != null && file.path!.isNotEmpty) {
+      return file.path;
+    }
+    if (file.bytes != null && file.bytes!.isNotEmpty) {
+      final dir = await getTemporaryDirectory();
+      final name = file.name.isNotEmpty
+          ? file.name
+          : 'import_${DateTime.now().millisecondsSinceEpoch}.mp3';
+      final outPath = p.join(dir.path, name);
+      await File(outPath).writeAsBytes(file.bytes!);
+      return outPath;
+    }
+    return null;
   }
 
   double get _trimDuration => _endSec - _startSec;
