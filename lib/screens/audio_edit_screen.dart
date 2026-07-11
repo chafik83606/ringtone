@@ -180,7 +180,11 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
         fadeOutSec: proService.isPro ? _fadeOut : 0,
         bitrate: proService.isPro ? 320 : 96,
       );
-      if (outPath == null) throw Exception('Découpage échoué');
+      if (outPath == null) {
+        throw Exception(
+          'Découpage échoué. Installez la dernière version TestFlight (build 24+).',
+        );
+      }
 
       if (mounted) {
         navigator.push(

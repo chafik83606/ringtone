@@ -22,15 +22,37 @@ class AudioService {
     double fadeOutSec = 0,
     int bitrate = 96, // 96 = gratuit, 320 = pro
   }) async {
-    final dir = await getApplicationDocumentsDirectory();
+    final source = File(inputPath);
+    if (!await source.exists()) {
+      debugPrint('Trim input missing: $inputPath');
+      return null;
+    }
+
+    final workDir = await getTemporaryDirectory();
+    final ext = p.extension(inputPath);
+    final safeExt = ext.isNotEmpty ? ext : '.mp3';
+    final safeInput = p.join(
+      workDir.path,
+      'input_${DateTime.now().millisecondsSinceEpoch}$safeExt',
+    );
+    await source.copy(safeInput);
+
     final outPath = p.join(
-      dir.path,
+      workDir.path,
       'trim_${DateTime.now().millisecondsSinceEpoch}.mp3',
     );
     final duration = endSec - startSec;
 
-    // Filtre audio conditionnel
-    String audioFilter = '';
+    final args = <String>[
+      '-y',
+      '-i',
+      safeInput,
+      '-ss',
+      startSec.toStringAsFixed(3),
+      '-t',
+      duration.toStringAsFixed(3),
+    ];
+
     if (fadeInSec > 0 || fadeOutSec > 0) {
       final fadeParts = <String>[];
       if (fadeInSec > 0) fadeParts.add('afade=t=in:st=0:d=$fadeInSec');
@@ -38,26 +60,30 @@ class AudioService {
         final fadeStart = max(0.0, duration - fadeOutSec);
         fadeParts.add('afade=t=out:st=$fadeStart:d=$fadeOutSec');
       }
-      audioFilter = '-af "${fadeParts.join(',')}"';
+      args.addAll(['-af', fadeParts.join(',')]);
     }
 
-    final cmd =
-        '-y -i "$inputPath" -ss $startSec -t $duration '
-        '$audioFilter '
-        '-b:a ${bitrate}k "$outPath"';
+    args.addAll(['-c:a', 'libmp3lame', '-b:a', '${bitrate}k', outPath]);
 
     try {
-      final session = await FFmpegKit.execute(cmd);
+      final session = await FFmpegKit.executeWithArguments(args);
       final rc = await session.getReturnCode();
-      if (ReturnCode.isSuccess(rc)) {
+      if (ReturnCode.isSuccess(rc) && await File(outPath).exists()) {
         return outPath;
       }
       final logs = await session.getAllLogsAsString();
-      debugPrint('FFmpeg error: $logs');
+      debugPrint('FFmpeg trim error: $logs');
       return null;
     } on MissingPluginException catch (e) {
       debugPrint('FFmpeg plugin unavailable: $e');
       return null;
+    } catch (e) {
+      debugPrint('FFmpeg trim exception: $e');
+      return null;
+    } finally {
+      if (await File(safeInput).exists()) {
+        await File(safeInput).delete();
+      }
     }
   }
 
