@@ -41,9 +41,20 @@ workflows:
         script: |
           flutter config --no-enable-swift-package-manager
           flutter pub get
+      - name: Verify RevenueCat iOS key
+        script: |
+          if [ -z "$RC_IOS_API_KEY" ]; then
+            echo "ERROR: RC_IOS_API_KEY est vide."
+            echo "Codemagic → ringtone → Environment variables → groupe ringtone_secrets"
+            exit 1
+          fi
+          echo "RC_IOS_API_KEY présente (${#RC_IOS_API_KEY} caractères)."
       - name: Build IPA
         script: |
+          BUILD_NUM=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          echo "=== iOS build number (pubspec): $BUILD_NUM ==="
           flutter build ipa --release \
+            --build-number="$BUILD_NUM" \
             --export-options-plist=/Users/builder/export_options.plist \
             --dart-define=RC_IOS_API_KEY=$RC_IOS_API_KEY \
             --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
@@ -60,6 +71,13 @@ workflows:
             echo "ERROR: no .ipa found after build"
             exit 1
           fi
+          BUILD_NUM=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo "0")
+          echo "=== Upload build $BUILD_NUM (dernier sur TestFlight: $LATEST) ==="
+          if [ "$BUILD_NUM" = "$LATEST" ]; then
+            echo "ERROR: build $BUILD_NUM déjà sur TestFlight — incrémentez pubspec.yaml (+$((BUILD_NUM + 1))) et relancez."
+            exit 1
+          fi
           echo "Uploading $IPA_PATH (Apple ID $APP_STORE_APPLE_ID)..."
           set +e
           app-store-connect publish \
@@ -69,14 +87,14 @@ workflows:
             --skip-package-validation 2>&1 | tee /tmp/asc_publish.log
           EXIT=$?
           set -e
-          if grep -q "UPLOAD SUCCEEDED" /tmp/asc_publish.log; then
-            echo "Upload delivered to Apple (build must be new — currently from pubspec.yaml)."
-            echo "Check App Store Connect → Distribution → Activité in 15-45 minutes."
+          if grep -qE "UPLOAD SUCCEEDED|Successfully uploaded" /tmp/asc_publish.log; then
+            echo "Upload livré à Apple — build $BUILD_NUM visible dans TestFlight sous 15-45 min."
             app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || true
             exit 0
           fi
-          echo "Upload failed (exit $EXIT)"
-          exit "$EXIT"
+          echo "=== Échec upload (exit $EXIT) — log complet : ==="
+          cat /tmp/asc_publish.log
+          exit 1
     artifacts:
       - build/**/*.ipa
     publishing:

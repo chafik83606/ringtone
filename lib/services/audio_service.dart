@@ -37,45 +37,77 @@ class AudioService {
     );
     await source.copy(safeInput);
 
-    final outPath = p.join(
-      workDir.path,
-      'trim_${DateTime.now().millisecondsSinceEpoch}.mp3',
-    );
+    final stamp = DateTime.now().millisecondsSinceEpoch;
     final duration = endSec - startSec;
+    final startArg = startSec.toStringAsFixed(3);
+    final durationArg = duration.toStringAsFixed(3);
+    String? lastLogs;
 
-    final args = <String>[
+    List<String> baseArgs() => [
       '-y',
       '-i',
       safeInput,
       '-ss',
-      startSec.toStringAsFixed(3),
+      startArg,
       '-t',
-      duration.toStringAsFixed(3),
+      durationArg,
     ];
 
-    if (fadeInSec > 0 || fadeOutSec > 0) {
+    List<String>? fadeFilter() {
+      if (fadeInSec <= 0 && fadeOutSec <= 0) return null;
       final fadeParts = <String>[];
       if (fadeInSec > 0) fadeParts.add('afade=t=in:st=0:d=$fadeInSec');
       if (fadeOutSec > 0) {
         final fadeStart = max(0.0, duration - fadeOutSec);
         fadeParts.add('afade=t=out:st=$fadeStart:d=$fadeOutSec');
       }
-      args.addAll(['-af', fadeParts.join(',')]);
+      return fadeParts;
     }
 
-    args.addAll(['-c:a', 'libmp3lame', '-b:a', '${bitrate}k', outPath]);
+    Future<String?> run(List<String> args) async {
+      try {
+        final session = await FFmpegKit.executeWithArguments(args);
+        final rc = await session.getReturnCode();
+        final outPath = args.last;
+        if (ReturnCode.isSuccess(rc) && await File(outPath).exists()) {
+          return outPath;
+        }
+        lastLogs = await session.getAllLogsAsString();
+        debugPrint('FFmpeg trim attempt failed: $lastLogs');
+      } on MissingPluginException catch (e) {
+        debugPrint('FFmpeg plugin unavailable: $e');
+        rethrow;
+      }
+      return null;
+    }
 
     try {
-      final session = await FFmpegKit.executeWithArguments(args);
-      final rc = await session.getReturnCode();
-      if (ReturnCode.isSuccess(rc) && await File(outPath).exists()) {
-        return outPath;
+      final fades = fadeFilter();
+
+      // Sans fondu : copie directe du flux (pas de libmp3lame requis).
+      if (fades == null) {
+        final outCopy = p.join(workDir.path, 'trim_$stamp$safeExt');
+        final copied = await run([...baseArgs(), '-c', 'copy', outCopy]);
+        if (copied != null) return copied;
       }
-      final logs = await session.getAllLogsAsString();
-      debugPrint('FFmpeg trim error: $logs');
-      return null;
-    } on MissingPluginException catch (e) {
-      debugPrint('FFmpeg plugin unavailable: $e');
+
+      // Avec fondu ou si la copie échoue : ré-encodage AAC (inclus dans FFmpeg min).
+      final outM4a = p.join(workDir.path, 'trim_$stamp.m4a');
+      final m4aArgs = <String>[...baseArgs()];
+      if (fades != null) m4aArgs.addAll(['-af', fades.join(',')]);
+      m4aArgs.addAll(['-c:a', 'aac', '-b:a', '${bitrate}k', outM4a]);
+      final encoded = await run(m4aArgs);
+      if (encoded != null) return encoded;
+
+      // Dernier recours : WAV non compressé.
+      final outWav = p.join(workDir.path, 'trim_$stamp.wav');
+      final wavArgs = <String>[...baseArgs()];
+      if (fades != null) wavArgs.addAll(['-af', fades.join(',')]);
+      wavArgs.addAll(['-c:a', 'pcm_s16le', outWav]);
+      final wav = await run(wavArgs);
+      if (wav != null) return wav;
+
+      debugPrint('FFmpeg trim all strategies failed. Last logs: $lastLogs');
       return null;
     } catch (e) {
       debugPrint('FFmpeg trim exception: $e');
@@ -103,10 +135,6 @@ class AudioService {
       dir.path,
       'piano_${DateTime.now().millisecondsSinceEpoch}.wav',
     );
-    final outPath = p.join(
-      dir.path,
-      'piano_${DateTime.now().millisecondsSinceEpoch}.mp3',
-    );
 
     final wavBytes = _buildPianoWave(
       notes: notes,
@@ -116,15 +144,19 @@ class AudioService {
     );
     await File(wavPath).writeAsBytes(wavBytes, flush: true);
 
+    final m4aPath = p.join(
+      dir.path,
+      'piano_${DateTime.now().millisecondsSinceEpoch}.m4a',
+    );
     final cmd =
-        '-y -i "$wavPath" -codec:a libmp3lame -b:a ${bitrate}k "$outPath"';
+        '-y -i "$wavPath" -codec:a aac -b:a ${bitrate}k "$m4aPath"';
 
     try {
       final session = await FFmpegKit.execute(cmd);
       final rc = await session.getReturnCode();
       if (ReturnCode.isSuccess(rc)) {
         await deleteFile(wavPath);
-        return outPath;
+        return m4aPath;
       }
       final logs = await session.getAllLogsAsString();
       debugPrint('FFmpeg synth error: $logs');

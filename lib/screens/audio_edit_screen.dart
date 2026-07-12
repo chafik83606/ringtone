@@ -182,7 +182,7 @@ class _AudioEditScreenState extends State<AudioEditScreen> {
       );
       if (outPath == null) {
         throw Exception(
-          'Découpage échoué. Installez la dernière version TestFlight (build 24+).',
+          'Découpage impossible. Réessayez ou importez un autre fichier audio (MP3, M4A, WAV).',
         );
       }
 
