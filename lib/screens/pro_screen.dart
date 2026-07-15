@@ -80,7 +80,24 @@ class ProScreen extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            if (!proService.purchasesConfigured)
+            if (!proService.storeAvailable)
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: const Text(
+                  'La boutique Google Play / App Store n\'est pas disponible '
+                  'sur cet appareil.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              )
+            else if (!proService.productsReady)
               Container(
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.all(14),
@@ -95,16 +112,18 @@ class ProScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Configuration achats requise',
+                      'Produits Pro introuvables',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       AppConfig.isAndroid
-                          ? 'Lancez l\'app avec RC_ANDROID_API_KEY et les IDs produits '
-                                '(mensuel, annuel, à vie) Google Play.'
-                          : 'Lancez l\'app avec RC_IOS_API_KEY et les IDs produits '
-                                '(mensuel, annuel, à vie) App Store.',
+                          ? 'Créez et activez ringtone_pro_monthly, '
+                                'ringtone_pro_annual et ringtone_pro_lifetime '
+                                'dans Google Play Console, puis installez l\'app '
+                                'depuis le Play Store (test interne).'
+                          : 'Créez les produits in-app dans App Store Connect '
+                                'avec les mêmes identifiants, puis testez via TestFlight.',
                       style: TextStyle(color: Colors.grey.shade800),
                     ),
                   ],
@@ -179,10 +198,12 @@ class ProScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               AppConfig.isAndroid
-                  ? 'Les prix affichés viennent de Google Play (via RevenueCat).\n'
-                        'Pour les abonnements : renouvellement automatique sauf annulation 24 h avant la fin de la période.'
-                  : 'Les prix affichés viennent de l\'App Store (via RevenueCat).\n'
-                        'Pour les abonnements : renouvellement automatique sauf annulation 24 h avant la fin de la période.',
+                  ? 'Les prix viennent de Google Play.\n'
+                        'Abonnements : renouvellement automatique sauf annulation '
+                        '24 h avant la fin de la période.'
+                  : 'Les prix viennent de l\'App Store.\n'
+                        'Abonnements : renouvellement automatique sauf annulation '
+                        '24 h avant la fin de la période.',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
               textAlign: TextAlign.center,
             ),

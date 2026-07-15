@@ -24,7 +24,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
   bool _isExporting = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
-  RingtoneType _selectedType = RingtoneType.ringtone;
+  final Set<RingtoneType> _selectedTypes = {RingtoneType.ringtone};
+  bool _isApplying = false;
 
   @override
   void initState() {
@@ -61,14 +62,36 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
+  String _typeLabel(RingtoneType type) => switch (type) {
+    RingtoneType.ringtone => 'Sonnerie',
+    RingtoneType.notification => 'Notification',
+    RingtoneType.alarm => 'Alarme',
+  };
+
+  String _applyButtonLabel() {
+    if (_selectedTypes.length == 3) return 'Appliquer aux 3 sons';
+    if (_selectedTypes.length == 1) {
+      return 'Définir comme ${_typeLabel(_selectedTypes.first).toLowerCase()}';
+    }
+    final labels = _selectedTypes.map(_typeLabel).join(', ');
+    return 'Appliquer ($labels)';
+  }
+
   Future<void> _setAsRingtone() async {
+    if (_selectedTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sélectionnez au moins un type de son.')),
+      );
+      return;
+    }
+
+    final selectedLabels = _selectedTypes.map(_typeLabel).join(', ');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Modifier les sons du téléphone'),
-        content: const Text(
-          'Cette action va modifier les paramètres son de votre appareil '
-          '(sonnerie, notification ou alarme).\n\n'
+        content: Text(
+          'Cette action va modifier : $selectedLabels.\n\n'
           'Android peut vous demander une autorisation supplémentaire. '
           'Vous pourrez annuler ce changement à tout moment dans les réglages.',
         ),
@@ -86,43 +109,72 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    final ok = await _ringtoneService.setRingtone(
-      filePath: widget.audioPath,
-      type: _selectedType,
-    );
-    if (!mounted) return;
+    setState(() => _isApplying = true);
+    try {
+      final applied = await _ringtoneService.setRingtoneForTypes(
+        filePath: widget.audioPath,
+        types: _selectedTypes,
+      );
+      if (!mounted) return;
 
-    if (!ok) {
-      final openSettings = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Autorisation requise'),
-          content: const Text(
-            'Impossible de définir la sonnerie. Android peut exiger '
-            'l\'autorisation « Modifier les paramètres système » pour cette app.',
+      if (applied.isEmpty) {
+        final openSettings = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Autorisation requise'),
+            content: const Text(
+              'Impossible de définir les sons. Android peut exiger '
+              'l\'autorisation « Modifier les paramètres système » pour cette app.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Fermer'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Ouvrir les réglages'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Fermer'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Ouvrir les réglages'),
-            ),
-          ],
+        );
+        if (openSettings == true) await openAppSettings();
+        return;
+      }
+
+      final appliedLabels = applied.map(_typeLabel).join(', ');
+      final partial = applied.length < _selectedTypes.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            partial
+                ? 'Appliqué : $appliedLabels. Certains sons n\'ont pas pu être définis.'
+                : 'Appliqué avec succès : $appliedLabels',
+          ),
+          backgroundColor: partial ? Colors.orange : Colors.green,
         ),
       );
-      if (openSettings == true) await openAppSettings();
-      return;
+    } finally {
+      if (mounted) setState(() => _isApplying = false);
     }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sonnerie définie avec succès !'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _toggleType(RingtoneType type, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedTypes.add(type);
+      } else if (_selectedTypes.length > 1) {
+        _selectedTypes.remove(type);
+      }
+    });
+  }
+
+  void _selectAllTypes() {
+    setState(() {
+      _selectedTypes
+        ..clear()
+        ..addAll(RingtoneType.values);
+    });
   }
 
   Future<bool> _confirmIosTruncation() async {
@@ -251,38 +303,55 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
             if (isAndroid) ...[
               const SizedBox(height: 24),
-              const Text(
-                'Définir comme :',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<RingtoneType>(
-                segments: const [
-                  ButtonSegment(
-                    value: RingtoneType.ringtone,
-                    label: Text('Sonnerie'),
-                    icon: Icon(Icons.phone),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Appliquer à :',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
-                  ButtonSegment(
-                    value: RingtoneType.notification,
-                    label: Text('Notif.'),
-                    icon: Icon(Icons.notifications),
-                  ),
-                  ButtonSegment(
-                    value: RingtoneType.alarm,
-                    label: Text('Alarme'),
-                    icon: Icon(Icons.alarm),
+                  TextButton(
+                    onPressed: _selectAllTypes,
+                    child: const Text('Tout sélectionner'),
                   ),
                 ],
-                selected: {_selectedType},
-                onSelectionChanged: (s) =>
-                    setState(() => _selectedType = s.first),
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                value: _selectedTypes.contains(RingtoneType.ringtone),
+                onChanged: (v) =>
+                    _toggleType(RingtoneType.ringtone, v ?? false),
+                secondary: const Icon(Icons.phone),
+                title: const Text('Sonnerie'),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                value: _selectedTypes.contains(RingtoneType.notification),
+                onChanged: (v) =>
+                    _toggleType(RingtoneType.notification, v ?? false),
+                secondary: const Icon(Icons.notifications),
+                title: const Text('Notification'),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                value: _selectedTypes.contains(RingtoneType.alarm),
+                onChanged: (v) => _toggleType(RingtoneType.alarm, v ?? false),
+                secondary: const Icon(Icons.alarm),
+                title: const Text('Alarme'),
+                controlAffinity: ListTileControlAffinity.leading,
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: _setAsRingtone,
-                icon: const Icon(Icons.ring_volume),
-                label: const Text('Définir comme sonnerie'),
+                onPressed: _isApplying ? null : _setAsRingtone,
+                icon: _isApplying
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.ring_volume),
+                label: Text(_applyButtonLabel()),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(

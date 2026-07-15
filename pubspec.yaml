@@ -1,7 +1,7 @@
 name: ringtone_maker
 description: "Ringtone Maker – créez vos sonneries personnalisées"
 publish_to: 'none'
-version: 1.0.5+26
+version: 1.0.5+32
 
 environment:
   sdk: ^3.11.3
@@ -34,8 +34,8 @@ dependencies:
   # Définir comme sonnerie Android
   ringtone_set_plus: ^0.0.2+2
 
-  # Achats in-app / abonnements
-  purchases_flutter: ^8.7.3          # RevenueCat SDK
+  # Achats in-app / abonnements (Google Play / App Store natifs)
+  in_app_purchase: ^3.2.3
 
   # Permissions runtime
   permission_handler: ^11.3.1

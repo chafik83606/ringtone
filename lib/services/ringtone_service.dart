@@ -30,8 +30,22 @@ class RingtoneService {
       }
       return true;
     } catch (e) {
-      debugPrint('Erreur définir sonnerie : $e');
+      debugPrint('Erreur définir sonnerie ($type) : $e');
       return false;
     }
+  }
+
+  /// Applique [filePath] à plusieurs types (sonnerie, notification, alarme).
+  /// Retourne les types appliqués avec succès.
+  Future<List<RingtoneType>> setRingtoneForTypes({
+    required String filePath,
+    required Set<RingtoneType> types,
+  }) async {
+    final applied = <RingtoneType>[];
+    for (final type in types) {
+      final ok = await setRingtone(filePath: filePath, type: type);
+      if (ok) applied.add(type);
+    }
+    return applied;
   }
 }

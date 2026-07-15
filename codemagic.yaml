@@ -1,32 +1,19 @@
 # Codemagic — Ringtone Maker
-# Dans Codemagic → ringtone → Settings → Environment variables,
-# créez le groupe "ringtone_secrets" avec :
-#   RC_IOS_API_KEY (iOS), RC_ANDROID_API_KEY (Android)
-# Upload TestFlight : clé API déjà dans Team settings → Integrations (codemagic-ios-release-v2)
+# Upload TestFlight : clé API dans Team settings → Integrations (codemagic-ios-release-v2)
 
 workflows:
   ios-release:
     name: iOS App Store
     instance_type: mac_mini_m2
     max_build_duration: 90
-    # Clé API App Store Connect (Team settings → Integrations → Developer Portal)
     integrations:
       app_store_connect: codemagic-ios-release-v2
     environment:
-      # Utilise certificat + profil enregistrés dans Team settings → Code signing identities
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ctre2.ringtonemaker
-      groups:
-        - ringtone_secrets
       vars:
-        RC_ENTITLEMENT_ID: pro
-        RC_OFFERING_ID: default
-        RC_MONTHLY_PRODUCT_ID: ringtone_pro_monthly
-        RC_ANNUAL_PRODUCT_ID: ringtone_pro_annual
-        RC_LIFETIME_PRODUCT_ID: ringtone_pro_lifetime
         PRIVACY_POLICY_URL: https://chafik83606.github.io/ringtone/privacy.html
-        # App Store Connect → Sonnerie Maker Pro → Informations sur l'app
         APP_STORE_APPLE_ID: 6779209432
       flutter: stable
       xcode: latest
@@ -41,14 +28,6 @@ workflows:
         script: |
           flutter config --no-enable-swift-package-manager
           flutter pub get
-      - name: Verify RevenueCat iOS key
-        script: |
-          if [ -z "$RC_IOS_API_KEY" ]; then
-            echo "ERROR: RC_IOS_API_KEY est vide."
-            echo "Codemagic → ringtone → Environment variables → groupe ringtone_secrets"
-            exit 1
-          fi
-          echo "RC_IOS_API_KEY présente (${#RC_IOS_API_KEY} caractères)."
       - name: Build IPA
         script: |
           BUILD_NUM=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
@@ -56,12 +35,6 @@ workflows:
           flutter build ipa --release \
             --build-number="$BUILD_NUM" \
             --export-options-plist=/Users/builder/export_options.plist \
-            --dart-define=RC_IOS_API_KEY=$RC_IOS_API_KEY \
-            --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
-            --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
-            --dart-define=RC_MONTHLY_PRODUCT_ID=$RC_MONTHLY_PRODUCT_ID \
-            --dart-define=RC_ANNUAL_PRODUCT_ID=$RC_ANNUAL_PRODUCT_ID \
-            --dart-define=RC_LIFETIME_PRODUCT_ID=$RC_LIFETIME_PRODUCT_ID \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
           find build -name "*.ipa" -type f
       - name: Upload to App Store Connect
@@ -104,21 +77,13 @@ workflows:
         notify:
           success: true
           failure: true
-      # Upload déjà fait dans "Build and upload IPA" — ne pas republier ici
 
   android-release:
     name: Android Play Store
     instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
-      groups:
-        - ringtone_secrets
       vars:
-        RC_ENTITLEMENT_ID: pro
-        RC_OFFERING_ID: default
-        RC_MONTHLY_PRODUCT_ID: ringtone_pro_monthly
-        RC_ANNUAL_PRODUCT_ID: ringtone_pro_annual
-        RC_LIFETIME_PRODUCT_ID: ringtone_pro_lifetime
         PRIVACY_POLICY_URL: https://chafik83606.github.io/ringtone/privacy.html
       flutter: stable
     scripts:
@@ -127,12 +92,6 @@ workflows:
       - name: Build AAB
         script: |
           flutter build appbundle --release \
-            --dart-define=RC_ANDROID_API_KEY=$RC_ANDROID_API_KEY \
-            --dart-define=RC_ENTITLEMENT_ID=$RC_ENTITLEMENT_ID \
-            --dart-define=RC_OFFERING_ID=$RC_OFFERING_ID \
-            --dart-define=RC_MONTHLY_PRODUCT_ID=$RC_MONTHLY_PRODUCT_ID \
-            --dart-define=RC_ANNUAL_PRODUCT_ID=$RC_ANNUAL_PRODUCT_ID \
-            --dart-define=RC_LIFETIME_PRODUCT_ID=$RC_LIFETIME_PRODUCT_ID \
             --dart-define=PRIVACY_POLICY_URL=$PRIVACY_POLICY_URL
     artifacts:
       - build/app/outputs/bundle/release/app-release.aab
