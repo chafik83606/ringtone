@@ -190,27 +190,100 @@ class AudioService {
     required String inputPath,
     int maxSeconds = 30,
   }) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final outPath = p.join(
-      dir.path,
-      'ringtone_${DateTime.now().millisecondsSinceEpoch}.m4r',
-    );
+    final source = File(inputPath);
+    if (!await source.exists()) {
+      debugPrint('m4r input missing: $inputPath');
+      return null;
+    }
 
-    final cmd =
-        '-y -i "$inputPath" -t $maxSeconds -c:a aac -b:a 128k -f ipod "$outPath"';
+    final workDir = await getTemporaryDirectory();
+    final ext = p.extension(inputPath);
+    final safeExt = ext.isNotEmpty ? ext : '.mp3';
+    final safeInput = p.join(
+      workDir.path,
+      'm4r_input_${DateTime.now().millisecondsSinceEpoch}$safeExt',
+    );
+    await source.copy(safeInput);
+
+    final dir = await getApplicationDocumentsDirectory();
+    final stamp = DateTime.now().millisecondsSinceEpoch;
+    final outM4r = p.join(dir.path, 'ringtone_$stamp.m4r');
+    final outM4a = p.join(dir.path, 'ringtone_$stamp.m4a');
+    String? lastLogs;
+
+    Future<String?> run(List<String> args) async {
+      try {
+        final session = await FFmpegKit.executeWithArguments(args);
+        final rc = await session.getReturnCode();
+        final outPath = args.last;
+        if (ReturnCode.isSuccess(rc) && await File(outPath).exists()) {
+          return outPath;
+        }
+        lastLogs = await session.getAllLogsAsString();
+        debugPrint('FFmpeg m4r attempt failed: $lastLogs');
+      } on MissingPluginException catch (e) {
+        debugPrint('FFmpeg plugin unavailable for m4r: $e');
+        rethrow;
+      }
+      return null;
+    }
+
+    final baseArgs = ['-y', '-i', safeInput, '-t', '$maxSeconds'];
 
     try {
-      final session = await FFmpegKit.execute(cmd);
-      final rc = await session.getReturnCode();
-      if (ReturnCode.isSuccess(rc)) {
-        return outPath;
+      final ipod = await run([
+        ...baseArgs,
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-f',
+        'ipod',
+        outM4r,
+      ]);
+      if (ipod != null) return ipod;
+
+      final mp4 = await run([
+        ...baseArgs,
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-f',
+        'mp4',
+        outM4r,
+      ]);
+      if (mp4 != null) return mp4;
+
+      final m4a = await run([
+        ...baseArgs,
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        outM4a,
+      ]);
+      if (m4a != null) {
+        await File(m4a).copy(outM4r);
+        if (await File(outM4r).exists()) {
+          await File(m4a).delete();
+          return outM4r;
+        }
+        return m4a;
       }
-      final logs = await session.getAllLogsAsString();
-      debugPrint('FFmpeg m4r error: $logs');
+
+      final copied = await run([...baseArgs, '-c:a', 'copy', outM4r]);
+      if (copied != null) return copied;
+
+      debugPrint('FFmpeg m4r all strategies failed. Last logs: $lastLogs');
       return null;
-    } on MissingPluginException catch (e) {
-      debugPrint('FFmpeg plugin unavailable for m4r: $e');
+    } catch (e) {
+      debugPrint('FFmpeg m4r exception: $e');
       return null;
+    } finally {
+      if (await File(safeInput).exists()) {
+        await File(safeInput).delete();
+      }
     }
   }
 

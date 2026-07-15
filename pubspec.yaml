@@ -1,7 +1,7 @@
 name: ringtone_maker
 description: "Ringtone Maker – créez vos sonneries personnalisées"
 publish_to: 'none'
-version: 1.0.5+32
+version: 1.0.5+33
 
 environment:
   sdk: ^3.11.3
