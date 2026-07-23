@@ -22,6 +22,18 @@ class AppConfig {
     defaultValue: 'https://chafik83606.github.io/ringtone/privacy.html',
   );
 
+  /// Conditions d'utilisation (EULA) — EULA standard Apple pour les abonnements.
+  static const String termsOfUseUrl = String.fromEnvironment(
+    'TERMS_OF_USE_URL',
+    defaultValue: 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+  );
+
+  /// Page d'assistance (GitHub Pages).
+  static const String supportUrl = String.fromEnvironment(
+    'SUPPORT_URL',
+    defaultValue: 'https://chafik83606.github.io/ringtone/support.html',
+  );
+
   static const String supportEmail = String.fromEnvironment(
     'SUPPORT_EMAIL',
     defaultValue: 'chakif.bakri@gmail.com',

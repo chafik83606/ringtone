@@ -123,6 +123,12 @@ class _AboutScreenState extends State<AboutScreen> {
               onTap: () => _openUrl(AppConfig.privacyPolicyUrl),
             ),
           ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Conditions d\'utilisation (EULA)'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openUrl(AppConfig.termsOfUseUrl),
+          ),
+          ListTile(
             leading: const Icon(Icons.mail_outline),
             title: const Text('Contact'),
             subtitle: Text(AppConfig.supportEmail),

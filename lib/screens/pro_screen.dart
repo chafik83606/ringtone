@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../services/pro_service.dart';
 
@@ -195,6 +196,9 @@ class ProScreen extends StatelessWidget {
               child: const Text('Restaurer mes achats'),
             ),
 
+            const SizedBox(height: 16),
+            const _SubscriptionLegalInfo(),
+
             const SizedBox(height: 8),
             Text(
               AppConfig.isAndroid
@@ -226,6 +230,103 @@ class ProScreen extends StatelessWidget {
       ),
     );
     if (ok) Navigator.pop(context);
+  }
+}
+
+class _SubscriptionLegalInfo extends StatelessWidget {
+  const _SubscriptionLegalInfo();
+
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Impossible d\'ouvrir : $url')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final proService = context.watch<ProService>();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Informations sur les abonnements',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          _LegalLine(
+            title: 'Ringtone Maker Pro — Mensuel',
+            detail:
+                'Durée : 1 mois · Prix : ${proService.monthlyPriceLabel} · '
+                'Renouvellement automatique.',
+          ),
+          const SizedBox(height: 6),
+          _LegalLine(
+            title: 'Ringtone Maker Pro — Annuel',
+            detail:
+                'Durée : 1 an · Prix : ${proService.annualPriceLabel} · '
+                'Renouvellement automatique.',
+          ),
+          const SizedBox(height: 6),
+          _LegalLine(
+            title: 'Ringtone Maker Pro — Accès à vie',
+            detail:
+                'Achat unique · Prix : ${proService.lifetimePriceLabel} · '
+                'Pas de renouvellement.',
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              TextButton(
+                onPressed: () =>
+                    _openUrl(context, AppConfig.privacyPolicyUrl),
+                child: const Text('Politique de confidentialité'),
+              ),
+              TextButton(
+                onPressed: () => _openUrl(context, AppConfig.termsOfUseUrl),
+                child: const Text('Conditions d\'utilisation (EULA)'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegalLine extends StatelessWidget {
+  final String title;
+  final String detail;
+
+  const _LegalLine({required this.title, required this.detail});
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(fontSize: 11, color: Colors.grey.shade800, height: 1.4),
+        children: [
+          TextSpan(
+            text: '$title\n',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          TextSpan(text: detail),
+        ],
+      ),
+    );
   }
 }
 

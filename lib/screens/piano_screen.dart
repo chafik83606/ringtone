@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/piano_note.dart';
@@ -109,6 +110,9 @@ class _PianoScreenState extends State<PianoScreen> {
     final freq = _noteFrequencies[name];
     if (freq == null) return;
 
+    HapticFeedback.lightImpact();
+    _addNote(name, freq);
+
     final isPro = context.read<ProService>().isPro;
     final bytes = _audioService.buildSingleNotePreviewWav(
       freq: freq,
@@ -117,9 +121,13 @@ class _PianoScreenState extends State<PianoScreen> {
     );
     final player = _notePlayers[_playerCursor % _notePlayers.length];
     _playerCursor++;
-    await player.play(BytesSource(bytes));
 
-    _addNote(name, freq);
+    try {
+      await player.stop();
+      await player.play(BytesSource(bytes));
+    } catch (e) {
+      debugPrint('Note preview failed: $e');
+    }
   }
 
   void _addNote(String name, double freq) {
@@ -440,10 +448,27 @@ class _InstrumentChip extends StatelessWidget {
   }
 }
 
-class _PianoKeyboard extends StatelessWidget {
+class _PianoKeyboard extends StatefulWidget {
   final ValueChanged<String> onNotePressed;
 
   const _PianoKeyboard({required this.onNotePressed});
+
+  @override
+  State<_PianoKeyboard> createState() => _PianoKeyboardState();
+}
+
+class _PianoKeyboardState extends State<_PianoKeyboard> {
+  String? _pressedKey;
+
+  void _handlePress(String name) {
+    setState(() => _pressedKey = name);
+    widget.onNotePressed(name);
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted && _pressedKey == name) {
+        setState(() => _pressedKey = null);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -455,65 +480,76 @@ class _PianoKeyboard extends StatelessWidget {
         final blackKeyHeight = whiteKeyHeight * 0.6;
 
         return Stack(
+          fit: StackFit.expand,
           children: [
-            // Touches blanches
             Row(
               children: _whiteKeys.map((name) {
-                return GestureDetector(
-                  onTapDown: (_) => onNotePressed(name),
-                  child: Container(
-                    width: whiteKeyWidth,
-                    height: whiteKeyHeight,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(4),
-                        bottomRight: Radius.circular(4),
-                      ),
-                    ),
-                    alignment: Alignment.bottomCenter,
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.grey.shade600,
+                final pressed = _pressedKey == name;
+                return Expanded(
+                  child: Material(
+                    color: pressed ? Colors.blue.shade100 : Colors.white,
+                    child: InkWell(
+                      onTap: () => _handlePress(name),
+                      child: Container(
+                        height: whiteKeyHeight,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(4),
+                            bottomRight: Radius.circular(4),
+                          ),
+                        ),
+                        alignment: Alignment.bottomCenter,
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 );
               }).toList(),
             ),
-
-            // Touches noires
             ...List.generate(_blackKeys.length, (i) {
               final name = _blackKeys[i];
-              if (name.isEmpty) return const SizedBox();
+              if (name.isEmpty) return const SizedBox.shrink();
               final left =
                   whiteKeyWidth * i + whiteKeyWidth - blackKeyWidth / 2;
+              final pressed = _pressedKey == name;
               return Positioned(
                 left: left,
                 top: 0,
-                child: GestureDetector(
-                  onTapDown: (_) => onNotePressed(name),
-                  child: Container(
-                    width: blackKeyWidth,
-                    height: blackKeyHeight,
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(4),
-                        bottomRight: Radius.circular(4),
-                      ),
+                child: Material(
+                  color: pressed ? Colors.black54 : Colors.black87,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(4),
+                    bottomRight: Radius.circular(4),
+                  ),
+                  child: InkWell(
+                    onTap: () => _handlePress(name),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(4),
                     ),
-                    alignment: Alignment.bottomCenter,
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 7,
-                        color: Colors.white60,
+                    child: SizedBox(
+                      width: blackKeyWidth,
+                      height: blackKeyHeight,
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 7,
+                              color: Colors.white60,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
